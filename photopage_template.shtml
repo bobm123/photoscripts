@@ -1,0 +1,61 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+
+    <title>DC Maxecuters - Photos</title>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8"/>
+    <meta name="description" content="FREE FLIGHT MODEL AIRPLANE CLUB"/>
+    <meta name="keywords" content="FREE FLIGHT SCALE, RUBBER POWER, FLYING ACES CLUB, FAC, DIME SCALE"/>
+
+    <link rel="icon" href="MaxIconWings.ico" type="image/xicon"/>
+    <link rel="SHORTCUT ICON" href="MaxIconWings.ico" type="image/x-icon"/>
+
+    <link rel="stylesheet" type="text/css" href="/dcmax-new.css"/>
+
+    <!-- these two lines load files with jQuery and the galleria script -->
+    <script src="jquery-1.9.1.min.js"></script>
+    <script src="galleria/galleria-1.2.9.min.js"></script>
+
+</head>
+<body>
+<div class="content">
+
+  <!--The loads the navigation menu -->
+  <!--#include virtual="/menu.html" -->
+
+  <div class="bodywrap">
+  <!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%-Start Page-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%-->
+
+  <!-- %%%%%%%%%%%%%%%%%%%%%% Start of Galleria Links %%%%%%%%%%%%%%%%%%%%%%% -->
+<h3>Photopage Title</h3>
+<p>
+Some words about the event
+</p>
+    <!-- to add images just insert more <img src="" > tags below -->
+    <!-- optionally can add data-title="" or data-description="" -->
+    <div id="galleria">
+      <img src="images/image1.1" data-title="" data-description="">
+      <img src="images/image2.jpg" data-title="" data-description="">
+      <img src="images/image3.jpg" data-title="" data-description="">
+    </div>
+
+  <!-- %%%%%%%%%%%%%%%%%%%%%%%% End of Galleria Links %%%%%%%%%%%%%%%%%%%%%% -->
+  
+  <!-- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%-End Page-%%%%%%%%%%%%%%%%%%%%%%%%%%%%% -->
+
+  <!-- The loads the common footer   -->
+  <!--#include virtual="/footer.html" -->
+
+  </div> <!--closes bodywrap -->
+
+  <!-- these next lines run the script -->
+  <script>
+    Galleria.loadTheme('galleria/themes/classic/galleria.classic.min.js');
+    Galleria.run('#galleria');
+  </script>
+
+
+</div> <!--closes content -->
+
+</body>
+</html>
