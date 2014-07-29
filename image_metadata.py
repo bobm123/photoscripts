@@ -6,6 +6,9 @@ from PIL import Image, ExifTags
 
 from iptcinfo import IPTCInfo
  
+########################################################################
+# Code shamelessly lifted from web
+# http://twigstechtips.blogspot.com/2014/06/python-reading-exif-and-iptc-tags-from.html
 
 tag_name_to_id = dict([ (v, k) for k, v in ExifTags.TAGS.items() ])
  
@@ -52,45 +55,75 @@ def convert_exif_to_dict(exif):
             data[k] = data[k].decode('utf-16').rstrip('\x00')
 
     return data
+
+# End of code shamelessly lifted from web
+########################################################################
      
- 
+
+def add_exif_tags(filename, metadata):
+  '''
+  Attempts to exatract tags from EXIF data in <filename> and adds them
+  to date, caption and credits keys in <metadata>. Uses the python image
+  library (PIL). May find WinXP tag keys in tag_name_to_id above
+  '''
+
+  # print "Exif Tags"
+  im = Image.open(filename)
+  im.verify()
+  
+  exif = convert_exif_to_dict(im._getexif())
+  if 'Artist' in exif:
+    metadata['credit'] += exif['Artist']
+  if 'DateTime' in exif and exif['DateTime']:
+    taken_on = exif['DateTime'].split(' ')[0]
+    taken_on = taken_on.split(':')
+    metadata['date'] += "%s/%s/%s" % (taken_on[1], taken_on[2], taken_on[0]) 
+  if 'XPTitle' in exif:
+    metadata['caption'] += exif['XPTitle']
+
+  # dump any exif tags in case there's something of interest
+  #for k in exif:
+  #  print k, exif[k]
+  
+  return metadata
+  
+  
+def add_iptc_tags(filename, metadata):
+  '''
+  Uses iptcdata.py IPTC data in <filename> and adds them caption and 
+  credits keys in <metadata>. 
+  '''
+
+  # this library throw up a lot (of errors)
+  try:
+    iptc = IPTCInfo(filename, force=True)
+    
+    if len(iptc.data) > 4:
+      #print iptc
+      metadata['credit'] += iptc.data['credit'] or ''
+      metadata['caption'] += iptc.data['caption/abstract'] or ''
+     
+    # dump any iptc tags in case there's something of interest
+    #for k in iptc.data:
+    #  print k, iptc.data[k]
+    
+  except Exception, e:
+    # This is used to skip anything not an image.
+    # Image.open will generate an exception if it cannot open a file.
+    # Warning, this will hide other errors as well.
+    pass
+        
+  return metadata
+
+
  # Attempt to read file metadata: Exif, Iptc or other things
 def readMetadata(filename):
   metadata = {'credit': '', 'caption':'', 'date':''}
   
-  print filename
-    
+  #print filename
   if os.path.isfile(filename):
-    # first try the IPTC tags
-    print "IPTC Tags"
-    iptc = IPTCInfo(filename, force=True)
-    if len(iptc.data) > 4:
-      metadata['credit'] += iptc.data['credit']
-      metadata['caption'] += iptc.data['caption/abstract']
-      
-      # dump any exif tags in case therr's something of interest
-      #for k in iptc.data:
-      #  print k, iptc.data[k]
-
-    # Next try to read Exif tags
-    print "Exif Tags"
-    im = Image.open(filename)
-    im.verify()
-    
-    exif = convert_exif_to_dict(im._getexif())
-    if 'Artist' in exif:
-      metadata['credit'] += exif['Artist']
-    if 'DateTime' in exif:
-      taken_on = exif['DateTime'].split(' ')[0]
-      taken_on = taken_on.split(':')
-      print taken_on
-      metadata['date'] += "%s/%s/%s" % (taken_on[1], taken_on[2], taken_on[0]) 
-    if 'XPTitle' in exif:
-      metadata['caption'] += exif['XPTitle']
-
-    # dump any exif tags in case there's something of interest
-    #for k in exif:
-    #  print k, exif[k]
+    metadata = add_iptc_tags(filename, metadata)
+    metadata = add_exif_tags(filename, metadata)
         
   return metadata
 
@@ -101,58 +134,3 @@ def main():
 
 if __name__ == '__main__':
   main()
-
-
-
-
-
-    
-'''  
-  try:
-    iptc = IPTCInfo(filename)
-    im_caption = iptc.data['caption/abstract']
-    im_credit = iptc.data['credit']
-    print im_caption
-    print im_credit
-    
-  except Exception, e:
-    if str(e) != "No IPTC data found.":
-      raise
- 
-#im = Image.open(filename)
-#im.verify()
-'''
-
-
-
-
-
-
-def foo():
-     
-  # Not sure what other formats are supported, I never looked into it.
-  if im.format in ['JPG', 'TIFF']:
-    try:
-      iptc = iptcinfo.IPTCInfo(filename)
-   
-      im_caption = iptc.data.get('caption/abstract', '')
-      im_credit = iptc.data.get('credit', '')
-      image_tags = iptc.keywords
-   
-    except Exception, e:
-      print "caught exception", e
-#      if str(e) != "No IPTC data found.":
-#        raise
-    
-    print im_caption
-    print im_credit
-   
-
-def readIptcInfo (im):
-  iptc= IptcImagePlugin.getiptcinfo(im) or {}
-  caption = iptc.get((2,120), "")
-  credit = iptc.get((2,110), "")
-  #print "caption:" + caption
-  #print "credit: " + credit
-  return(credit, caption)
-
