@@ -142,9 +142,14 @@ class Controller(object):
     self.model.writeImageInfo()
     
   def update(self):
-    for view in self.views:
-      info = self.model.getImageInfo(self.currentImage)
-      view.update(self.currentImage, info[2], info[0], info[1])
+    # assume controller has a single view 
+    info = self.model.getImageInfo(self.currentImage)
+    rval = self.views[0].update(self.currentImage, info[2], info[0], info[1])
+    return rval
+    
+#    for view in self.views:
+#      info = self.model.getImageInfo(self.currentImage)
+#      view.update(self.currentImage, info[2], info[0], info[1])
 
 
 ########################################################################
