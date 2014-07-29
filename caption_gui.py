@@ -119,6 +119,8 @@ class Controller(object):
     self.model = model
     self.images = model.loadImageInfo();
     self.imageIndex = 0
+    
+    # TODO: handle no image in curren directory case, duh!
     self.currentImage = self.images[self.imageIndex]
     
   def storeInfo(self, credit, caption):
@@ -231,6 +233,7 @@ def main(argv):
   controller.update()
 
   root.mainloop()
+
 
 if __name__ == '__main__':
   main(sys.argv)
