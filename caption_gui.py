@@ -3,13 +3,10 @@
 import sys, os
 import json
 from Tkinter import *
+import tkMessageBox
 import Image
 import ImageTk
 
-
-#from PIL import IptcImagePlugin
-#import ExifTags
-#from iptcinfo import IPTCInfo
 
 JSON_FILE = 'imageinfo.json'
 
@@ -117,11 +114,14 @@ class Controller(object):
   def __init__(self, model):
     self.views = []
     self.model = model
-    self.images = model.loadImageInfo();
-    self.imageIndex = 0
     
     # TODO: handle no image in curren directory case, duh!
-    self.currentImage = self.images[self.imageIndex]
+    self.imageIndex = 0
+    self.images = model.loadImageInfo();
+    if len(self.images) > 0:
+      self.currentImage = self.images[self.imageIndex]
+    else:
+      self.currentImage = None
     
   def storeInfo(self, credit, caption):
     self.model.setImageInfo(self.currentImage, credit, caption)
@@ -183,8 +183,6 @@ class View(object):
     self.button2.grid(row=4, column=1, sticky=W)
     self.button3.grid(row=4, column=2)      
     
-    #self.update(self.filename)
-
   def backHandler(self):
     self.controller.storeInfo(self.entry1.get(), self.entry2.get())
     self.controller.prevImage()
@@ -202,17 +200,19 @@ class View(object):
     self.master.title(self.filename)         
     self.label0b.config(text=self.filename)
     
-    im = pilResize(im, 400)
-    tkpi = ImageTk.PhotoImage(im)
-    self.icon.configure(image=tkpi)
-    self.icon.image = tkpi # keep a reference
-    
-    self.entry1.delete(0, END)
-    self.entry1.insert(0, credit)
-    self.entry2.delete(0, END)
-    self.entry2.insert(0, caption)
-
-
+    if filename == '' or not im:
+      return False
+    else:
+      im = pilResize(im, 400)
+      tkpi = ImageTk.PhotoImage(im)
+      self.icon.configure(image=tkpi)
+      self.icon.image = tkpi # keep a reference
+      
+      self.entry1.delete(0, END)
+      self.entry1.insert(0, credit)
+      self.entry2.delete(0, END)
+      self.entry2.insert(0, caption)
+      return True
 
 ########################################################################
 
@@ -227,13 +227,14 @@ def main(argv):
   model = Model(image_dir)
   controller = Controller(model)
   view = View(root, controller)
-
   model.controllers.append(controller)
   controller.views.append(view)
-  controller.update()
-
-  root.mainloop()
-
+  
+  if controller.update():
+    root.mainloop()
+  else:
+    print "Image files not found"
+    tkMessageBox.showerror('No Images', 'Image files not found')
 
 if __name__ == '__main__':
   main(sys.argv)
