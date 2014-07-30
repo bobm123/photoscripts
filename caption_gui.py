@@ -3,7 +3,7 @@
 import sys, os
 import json
 from Tkinter import *
-import tkMessageBox
+import tkMessageBox, tkFileDialog
 import Image
 import ImageTk
 
@@ -174,19 +174,22 @@ class View(object):
     # some basic navigations
     self.button1 = Button(self.master, text="<-", command=self.backHandler)
     self.button2 = Button(self.master, text="->", command=self.nextHandler)
-    self.button3 = Button(self.master, text="save", command=self.saveHandler)
+    self.button3 = Button(self.master, text="Save", command=self.saveHandler)
+    self.button4 = Button(self.master, text="Exit", command=self.exitHandler)
 
     # Grid layout for all the widgets (move to a helper?)
-    self.icon.grid(row=0, column=0, columnspan=4,  padx=8, pady=5)
+    self.icon.grid(row=0, column=0, columnspan=5,  padx=8, pady=5)
     self.label0a.grid(row=1, column=0, sticky=E)
     self.label0b.grid(row=1, column=1, sticky=W)
     self.label1.grid(row=2, column=0, sticky=E)
-    self.entry1.grid(row=2, column=1, columnspan=2, sticky=W)
+    self.entry1.grid(row=2, column=1, columnspan=3, sticky=W)
     self.label2.grid(row=3, column=0, sticky=E)
-    self.entry2.grid(row=3, column=1, columnspan=2, sticky=W)
+    self.entry2.grid(row=3, column=1, columnspan=3, sticky=W)
+    
     self.button1.grid(row=4, column=0, sticky=E)
     self.button2.grid(row=4, column=1, sticky=W)
     self.button3.grid(row=4, column=2)      
+    self.button4.grid(row=4, column=3)      
     
   def backHandler(self):
     self.controller.storeInfo(self.entry1.get(), self.entry2.get())
@@ -195,6 +198,9 @@ class View(object):
   def nextHandler(self):
     self.controller.storeInfo(self.entry1.get(), self.entry2.get())
     self.controller.nextImage()
+
+  def exitHandler(self):
+    self.master.quit()
 
   def saveHandler(self):
     self.controller.storeInfo(self.entry1.get(), self.entry2.get())
@@ -222,24 +228,43 @@ class View(object):
 ########################################################################
 
 
+def chooseDirectory(root):
+
+    # options for opening a directory
+    options = {}
+    options['initialdir'] = '.'
+    options['mustexist'] = True
+    options['parent'] = root
+    options['title'] = 'Image directory'
+    
+    return tkFileDialog.askdirectory(parent=root, initialdir='.', mustexist=True, title='Image directory')
+
+
 def main(argv):
   root = Tk()
 
-  image_dir = '.'
   if len(argv) > 1:
     image_dir = argv[1]
-    
-  model = Model(image_dir)
-  controller = Controller(model)
-  view = View(root, controller)
-  model.controllers.append(controller)
-  controller.views.append(view)
-  
-  if controller.update():
-    root.mainloop()
   else:
-    print "Image files not found"
-    tkMessageBox.showerror('No Images', 'Image files not found')
+    image_dir = chooseDirectory(root)
+    
+#  if image_dir != '':
+  
+  if os.path.exists(image_dir):    
+    model = Model(image_dir)
+    controller = Controller(model)
+    view = View(root, controller)
+    model.controllers.append(controller)
+    controller.views.append(view)
+    
+    if controller.update():
+      root.mainloop()
+    else:
+      print "Image files not found"
+      tkMessageBox.showerror('No Images', 'Image files not found')
+  else:
+      print "file path does not exist"
+      
 
 if __name__ == '__main__':
   main(sys.argv)
