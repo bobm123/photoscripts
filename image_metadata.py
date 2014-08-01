@@ -123,7 +123,7 @@ def readMetadata(filename):
   #print filename
   if os.path.isfile(filename):
     metadata = add_iptc_tags(filename, metadata)
-    metadata = add_exif_tags(filename, metadata)
+    #metadata = add_exif_tags(filename, metadata)
         
   return metadata
 
