@@ -6,6 +6,10 @@ from Tkinter import *
 import tkMessageBox, tkFileDialog
 import Image
 import ImageTk
+import os.path
+import time
+
+import image_metadata
 
 
 JSON_FILE = 'imageinfo.json'
@@ -13,22 +17,21 @@ JSON_FILE = 'imageinfo.json'
 
 ########################################################################
 
-import image_metadata
 
 
-def readIptcInfo (filename):
-  if os.path.isfile(filename):
-    try:
-      metadata = image_metadata.readMetadata(filename)
-      
-    except Exception, e:
-        # This is used to skip anything not an image.
-        # Image.open generates an exception if it cannot open a file.
-        # Warning, this will hide other errors as well.
-        print e
-        pass
-        
-    return(metadata['credit'], metadata['date']+" "+metadata['caption'])
+#def readIptcInfo (filename):
+#  if os.path.isfile(filename):
+#    try:
+#      metadata = image_metadata.readMetadata(filename)
+#      
+#    except Exception, e:
+#        # This is used to skip anything not an image.
+#        # Image.open generates an exception if it cannot open a file.
+#        # Warning, this will hide other errors as well.
+#        print e
+#        pass
+#        
+#    return (metadata['credit'], metadata['date']+" "+metadata['caption'])
   
 
 def pilResize(im, newsize):
@@ -65,19 +68,29 @@ class Model(object):
 
     
   def findImages(self, filelist):
+    '''
+    attempts to open each file in the filelist (usually the files in the
+    target directory) and extracts the caption and credit info from the
+    matadata. Returns dicitonary of all the imagefiles (keys) and
+    a list of strings [credit, caption]' (values)
+    '''
     image_info = {}
     for f in filelist:
       fullpath = os.path.join(self.imageDir, f)
       try:
         im = Image.open(fullpath)
-        image_info[f] = readIptcInfo(fullpath)
       
       except Exception, e:
         # This is used to skip anything not an image.
         # Image.open generates an exception if it cannot open a file.
         # Warning, this will hide other errors as well.
-        pass
+        print "not an image file ", fullpath
         
+      else:
+        metadata = image_metadata.readMetadata(fullpath)
+        image_info[f] = [metadata['credit'], metadata['date']+" "+metadata['caption']]
+        print "image created: %s" %time.ctime(os.path.getctime(fullpath))
+          
     return image_info
 
   
@@ -88,16 +101,29 @@ class Model(object):
 
     
   def getImageInfo(self, image):
+    '''
+    Main interface to the data model. given the full path to an image
+    returns a 3-tupel or the credit string, caption string, and an
+    image handle. If image not contains in model returns safe null 
+    values
+    '''
     if image in self.imageInfo:
       im = Image.open(os.path.join(self.imageDir, image))
       info = self.imageInfo[image]
-      return (info[0], info[1], im) 
+      return (info[0], info[1], im)
     else:
       return ("", "", None)
   
   
   def writeImageInfo(self):
-    f = open(os.path.join(self.imageDir, JSON_FILE), 'w')
+    fullpath = os.path.join(self.imageDir, JSON_FILE)
+    if os.path.exists(fullpath):
+      timestamp =  time.gmtime(os.path.getctime(fullpath))
+      backupfile = time.strftime("%Y%m%d-%H%M%S", timestamp)+'.json'
+      print "rename json file: %s" % backupfile
+      os.rename(fullpath, os.path.join(self.imageDir, backupfile))
+      
+    f = open(fullpath, 'w')
     serialized = json.dumps(self.imageInfo, sort_keys=True, indent=2, separators=(',', ': '))
     f.write(serialized)
     #print serialized 
@@ -115,7 +141,7 @@ class Controller(object):
     self.views = []
     self.model = model
     
-    # TODO: handle no image in curren directory case, duh!
+    # TODO: handle no image in current directory case, duh!
     self.imageIndex = 0
     self.images = model.loadImageInfo();
     if len(self.images) > 0:
@@ -200,6 +226,7 @@ class View(object):
     self.controller.nextImage()
 
   def exitHandler(self):
+    # TODO: May want to pass this back to controller
     self.master.quit()
 
   def saveHandler(self):
@@ -248,8 +275,6 @@ def main(argv):
   else:
     image_dir = chooseDirectory(root)
     
-#  if image_dir != '':
-  
   if os.path.exists(image_dir):    
     model = Model(image_dir)
     controller = Controller(model)
