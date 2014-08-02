@@ -66,20 +66,21 @@ def add_exif_tags(filename, metadata):
   to date, caption and credits keys in <metadata>. Uses the python image
   library (PIL). May find WinXP tag keys in tag_name_to_id above
   '''
-
+  
   # print "Exif Tags"
   im = Image.open(filename)
   im.verify()
   
-  exif = convert_exif_to_dict(im._getexif())
-  if 'Artist' in exif:
-    metadata['credit'] += exif['Artist']
-  if 'DateTime' in exif and exif['DateTime']:
-    taken_on = exif['DateTime'].split(' ')[0]
-    taken_on = taken_on.split(':')
-    metadata['date'] += "%s/%s/%s" % (taken_on[1], taken_on[2], taken_on[0]) 
-  if 'XPTitle' in exif:
-    metadata['caption'] += exif['XPTitle']
+  if im.format in ['JPG', 'TIFF']:
+    exif = convert_exif_to_dict(im._getexif())
+    if 'Artist' in exif:
+      metadata['credit'] += exif['Artist']
+    if 'DateTime' in exif and exif['DateTime']:
+      taken_on = exif['DateTime'].split(' ')[0]
+      taken_on = taken_on.split(':')
+      metadata['date'] += "%s/%s/%s" % (taken_on[1], taken_on[2], taken_on[0]) 
+    if 'XPTitle' in exif:
+      metadata['caption'] += exif['XPTitle']
 
   # dump any exif tags in case there's something of interest
   #for k in exif:
@@ -123,7 +124,7 @@ def readMetadata(filename):
   #print filename
   if os.path.isfile(filename):
     metadata = add_iptc_tags(filename, metadata)
-    #metadata = add_exif_tags(filename, metadata)
+    metadata = add_exif_tags(filename, metadata)
         
   return metadata
 
