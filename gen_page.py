@@ -24,9 +24,16 @@ def create_dir(path):
             raise
 
 
-def gen_page(args):
+def get_favorites(imageinfo, count):
+  
+  favList = sorted(imageinfo, reverse=True,  key=lambda k: imageinfo[k][2])
+  #for fn in favList:
+  #  print "%s, likes: %d" % (fn, imageinfo[fn][2])
+  
+  return favList[0:count]
 
-    work_dir = args[1]
+  
+def gen_page(work_dir, count):
 
     create_dir(work_dir + '/original')
     create_dir(work_dir + '/small')
@@ -36,7 +43,7 @@ def gen_page(args):
     tags.write("  <div class=\"galleria\">\n")
 
     try:
-      jsonfile = os.path.join(args[1], 'imageinfo.json')
+      jsonfile = os.path.join(work_dir, 'imageinfo.json')
       f = open(jsonfile, 'r')
       imageinfo = json.loads(f.read())
       
@@ -44,10 +51,12 @@ def gen_page(args):
       print "could not read image info from", jsonfile
       return
     
+    fav_images = get_favorites(imageinfo, count)
+    
     # TODO: Use the votes to create a list of the N best images
-    for fn in imageinfo:
+    for fn in fav_images:
         base_name = os.path.splitext(os.path.basename(fn))[0]+'.jpg'
-        print base_name
+        #print base_name
         
         original_file = os.path.join(work_dir, 'original', base_name)
         small_file = os.path.join(work_dir, 'small', base_name)
@@ -93,12 +102,15 @@ def gen_page(args):
     tags.close
 
 
-def main(args):
-  gen_page(args)
+def main():
+  count = int(sys.argv[2]) if len(sys.argv) > 2 else 50
+  print count
+  
+  gen_page(sys.argv[1], count)
     
 
 if __name__ == '__main__':
-  main(sys.argv)
+  main()
 
     
 
