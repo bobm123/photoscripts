@@ -14,7 +14,7 @@ import json
 #tsize = 100, 100
 T_HEIGHT = 200.0
 S_HEIGHT = 800.0
-fmt_line = "    <a href=\"small/%s.jpg\"><img src=\"thumbs/%s.png\" data-big=\"original/%s.jpg\" data-title=\"%s\" data-description=\"%s\"></a>\n"
+fmt_line = "    <a href=\"small/%s\"><img src=\"thumbs/%s\" data-description=\"%s\" data-title=\"%s\" data-big=\"original/%s\" ></a>\n"
 
 def create_dir(path):
     try: 
@@ -23,17 +23,8 @@ def create_dir(path):
         if not os.path.isdir(path):
             raise
 
-def read_image_metadata (filename):
-  meta = {}
-  if os.path.isfile(filename):
-    f = open(filename, 'r')
-    meta = json.loads(f.read())
-    
-  print meta
-  return meta
-  
 
-def main(args):
+def gen_page(args):
 
     work_dir = args[1]
 
@@ -44,22 +35,32 @@ def main(args):
     tags = open(work_dir + '/tags.html', 'w')
     tags.write("  <div class=\"galleria\">\n")
 
-    imageinfo = read_image_metadata(os.path.join(work_dir,'imageinfo.json'))
+    try:
+      jsonfile = os.path.join(args[1], 'imageinfo.json')
+      f = open(jsonfile, 'r')
+      imageinfo = json.loads(f.read())
+      
+    except:
+      print "could not read image info from", jsonfile
+      return
+    
+    # TODO: Use the votes to create a list of the N best images
+    for fn in imageinfo:
+        base_name = os.path.splitext(os.path.basename(fn))[0]+'.jpg'
+        print base_name
+        
+        original_file = os.path.join(work_dir, 'original', base_name)
+        small_file = os.path.join(work_dir, 'small', base_name)
+        thumb_file = os.path.join(work_dir, 'thumbs', base_name)
 
-    files = sorted(glob.glob(work_dir +'/*.jpg'))
-    for img_file in files:
-        base_name = os.path.splitext(os.path.basename(img_file))[0]
-
-        original_file = work_dir + '/original/' + base_name + '.jpg'
-        small_file = work_dir + '/small/' + base_name + '.jpg'
-        thumb_file = work_dir + '/thumbs/' + base_name + '.jpg'
-
-        im = Image.open(img_file)
+        try:
+          im = Image.open(os.path.join(work_dir, fn))
+          
+        except:
+          print "could not open image file:", fn
+          continue
+          
         im.save(original_file, "JPEG")
-
-#        iptc= IptcImagePlugin.getiptcinfo(im) or {}
-#        caption = iptc.get((2,120), "")
-#        credit = iptc.get((2,110), "")
 
         credit = ''
         caption = ''
@@ -67,14 +68,13 @@ def main(args):
         if base_name in imageinfo:
           credit = imageinfo[base_name][0]
           caption =imageinfo[base_name][1]
-        #print "credit: " + credit
-        #print "caption:" + caption
+        
         description = caption
         if len(credit) > 0:
             description += " photo: "+credit
         print "description: "+description
 
-        # Make the thumbnails S_HEIGHT high by various width
+        # Make the snall photos S_HEIGHT high by various width
         im_scale = S_HEIGHT / float(im.size[1]);
         im.thumbnail((int(im.size[0]*im_scale), S_HEIGHT), Image.ANTIALIAS)
         im.save(small_file, "JPEG")
@@ -92,6 +92,10 @@ def main(args):
     tags.write("  </div>\n")
     tags.close
 
+
+def main(args):
+  gen_page(args)
+    
 
 if __name__ == '__main__':
   main(sys.argv)
