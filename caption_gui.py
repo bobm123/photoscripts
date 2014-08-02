@@ -84,7 +84,13 @@ class Model(object):
     for fn in image_info:
       if fn in json_info:
         image_info[fn] = json_info[fn]
-        
+
+    # Add a field the like votes
+    for fn in image_info:
+      if len(image_info[fn]) < 3:
+        image_info[fn].append(0)
+    print image_info
+    
     # save the image info as the data mode and return a list of files
     self.imageInfo = image_info
     #print self.imageInfo
@@ -121,9 +127,17 @@ class Model(object):
   
   def setImageInfo(self, image, credit, caption):
     if image in self.imageInfo:
-      self.imageInfo[image] = (credit, caption)
+      self.imageInfo[image][0] = credit 
+      self.imageInfo[image][1] = caption
     #print self.imageInfo
 
+
+  def recordVote(self, v, fn):
+    likes = self.imageInfo[fn][2] + v
+    likes = 0 if likes < 0 else likes
+    likes = 5 if likes > 5 else likes
+    self.imageInfo[fn][2] = likes
+    
     
   def getImageInfo(self, image):
     '''
@@ -131,13 +145,15 @@ class Model(object):
     returns a 3-tupel or the credit string, caption string, and an
     image handle. If image not contains in model returns safe null 
     values
+    TODO: This interface is kind of klunky with the vote field added,
+          either return a struct or let Controller grab whatever
     '''
     if image in self.imageInfo:
       im = Image.open(os.path.join(self.imageDir, image))
       info = self.imageInfo[image]
-      return (info[0], info[1], im)
+      return (info[0], info[1], info[2], im)
     else:
-      return ("", "", None)
+      return ("", "", 0, None)
   
   
   def writeImageInfo(self):
@@ -198,10 +214,14 @@ class Controller(object):
   def writeImageInfo(self):
     self.model.writeImageInfo()
     
+  def recordVote(self, v):
+    self.model.recordVote(v, self.currentImage)
+    self.update()
+    
   def update(self):
     # assume controller has a single view 
     info = self.model.getImageInfo(self.currentImage)
-    rval = self.views[0].update(self.currentImage, info[2], info[0], info[1])
+    rval = self.views[0].update(self.currentImage, info[3], info[0], info[1], info[2])
     return rval
     
 #    for view in self.views:
@@ -224,30 +244,37 @@ class View(object):
     self.label0b = Label(self.master, text=self.filename)
     self.label1 = Label(self.master, text="Credit:")
     self.label2 = Label(self.master, text="Caption:")
+    self.label3 = Label(self.master, text="Likes: 0")
 
     # make some text entry boxes for caption and credits strings
-    self.entry1 = Entry(self.master)
+    self.entry1 = Entry(self.master, width=15)
     self.entry2 = Entry(self.master, width=50)
 
     # some basic navigations
     self.button1 = Button(self.master, text="<-", command=self.backHandler)
     self.button2 = Button(self.master, text="->", command=self.nextHandler)
     self.button3 = Button(self.master, text="Save", command=self.saveHandler)
-    self.button4 = Button(self.master, text="Exit", command=self.exitHandler)
+    self.button4 = Button(self.master, text="Done", command=self.exitHandler)
+    self.button5 = Button(self.master, text="+", command=self.voteUp)
+    self.button6 = Button(self.master, text="-", command=self.voteDown)
 
     # Grid layout for all the widgets (move to a helper?)
-    self.icon.grid(row=0, column=0, columnspan=5,  padx=8, pady=5)
+    self.icon.grid(row=0, column=0, columnspan=6,  padx=8, pady=5)
     self.label0a.grid(row=1, column=0, sticky=E)
-    self.label0b.grid(row=1, column=1, sticky=W)
+    self.label0b.grid(row=1, column=1, sticky=W, columnspan=5)
     self.label1.grid(row=2, column=0, sticky=E)
-    self.entry1.grid(row=2, column=1, columnspan=3, sticky=W)
+    self.entry1.grid(row=2, column=1, columnspan=6, sticky=W)
     self.label2.grid(row=3, column=0, sticky=E)
-    self.entry2.grid(row=3, column=1, columnspan=3, sticky=W)
+    self.entry2.grid(row=3, column=1, columnspan=6, sticky=W)
     
     self.button1.grid(row=4, column=0, sticky=E)
     self.button2.grid(row=4, column=1, sticky=W)
-    self.button3.grid(row=4, column=2)      
-    self.button4.grid(row=4, column=3)      
+    self.label3.grid(row=4, column=2, sticky=E)
+    self.button5.grid(row=4, column=3, sticky=E)      
+    self.button6.grid(row=4, column=4, sticky=W)      
+    self.button3.grid(row=4, column=5)      
+    self.button4.grid(row=4, column=6)      
+
     
   def backHandler(self):
     self.controller.storeInfo(self.entry1.get(), self.entry2.get())
@@ -261,11 +288,17 @@ class View(object):
     # TODO: May want to pass this back to controller
     self.master.quit()
 
+  def voteUp(self):
+    self.controller.recordVote(1)
+
+  def voteDown(self):
+    self.controller.recordVote(-1)
+
   def saveHandler(self):
     self.controller.storeInfo(self.entry1.get(), self.entry2.get())
     self.controller.writeImageInfo()
 
-  def update(self, filename, im, credit="", caption=""):
+  def update(self, filename, im, credit="", caption="", votes=0):
     self.filename = filename
     self.master.title(self.filename)         
     self.label0b.config(text=self.filename)
@@ -277,6 +310,8 @@ class View(object):
       tkpi = ImageTk.PhotoImage(im)
       self.icon.configure(image=tkpi)
       self.icon.image = tkpi # keep a reference
+      
+      self.label3.configure(text="Likes: %d" % votes)
       
       self.entry1.delete(0, END)
       self.entry1.insert(0, credit)
