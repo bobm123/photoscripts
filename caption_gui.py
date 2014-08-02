@@ -116,6 +116,11 @@ class Model(object):
   
   
   def writeImageInfo(self):
+    '''
+    dump the data model to a .json file. Avoids overwriting previous
+    work by first renaming any existing imageinfo.json with a date code
+    TODO: only bother with this if the data actually changed
+    '''
     fullpath = os.path.join(self.imageDir, JSON_FILE)
     if os.path.exists(fullpath):
       timestamp =  time.gmtime(os.path.getctime(fullpath))
