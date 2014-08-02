@@ -11,7 +11,7 @@ import time
 
 import image_metadata
 
-
+IMAGE_SIZE = 600 
 JSON_FILE = 'imageinfo.json'
 
 ########################################################################
@@ -71,13 +71,19 @@ class Model(object):
 
     
   def loadImageInfo(self):
+    """
+    Initializes the data mode using all the image files found in the
+    working directory. It also loads info from any json files it finds,
+    including the number of 'likes'. It returns a list image files that
+    the controller can select from.
+    """
     # find all the images and load any info embedded in them  
     filelist = os.listdir(self.imageDir)
     image_info = self.findImages(filelist)
 
-    # load their info from all the json files
-    jfiles = [os.path.join(self.imageDir,fn) for fn in filelist]
-    json_info = loadAllJson(jfiles)
+    # info from any json files found in the image dir
+    path_fn = [os.path.join(self.imageDir,fn) for fn in filelist]
+    json_info = loadAllJson(path_fn)
 
     # add the json file info to the image files. Ignores info if there
     # isn't an image file to go with it.
@@ -89,7 +95,7 @@ class Model(object):
     for fn in image_info:
       if len(image_info[fn]) < 3:
         image_info[fn].append(0)
-    print image_info
+    #print image_info
     
     # save the image info as the data mode and return a list of files
     self.imageInfo = image_info
@@ -236,10 +242,10 @@ class View(object):
   def __init__(self, master, controller):
     self.controller = controller
     self.master = master
-    self.master.geometry('480x525')
+    self.master.geometry('%dx%d' % (IMAGE_SIZE+40,IMAGE_SIZE+125))
     self.filename = self.controller.currentImage
     
-    self.icon = Label(self.master, height=400)
+    self.icon = Label(self.master, width=IMAGE_SIZE, height=IMAGE_SIZE)
     self.label0a = Label(self.master, text="Filename:")
     self.label0b = Label(self.master, text=self.filename)
     self.label1 = Label(self.master, text="Credit:")
@@ -247,8 +253,8 @@ class View(object):
     self.label3 = Label(self.master, text="Likes: 0")
 
     # make some text entry boxes for caption and credits strings
-    self.entry1 = Entry(self.master, width=15)
-    self.entry2 = Entry(self.master, width=50)
+    self.entry1 = Entry(self.master, width=20)
+    self.entry2 = Entry(self.master, width=60)
 
     # some basic navigations
     self.button1 = Button(self.master, text="<-", command=self.backHandler)
@@ -259,13 +265,13 @@ class View(object):
     self.button6 = Button(self.master, text="-", command=self.voteDown)
 
     # Grid layout for all the widgets (move to a helper?)
-    self.icon.grid(row=0, column=0, columnspan=6,  padx=8, pady=5)
+    self.icon.grid(row=0, column=0, columnspan=8,  padx=20, pady=5)
     self.label0a.grid(row=1, column=0, sticky=E)
     self.label0b.grid(row=1, column=1, sticky=W, columnspan=5)
     self.label1.grid(row=2, column=0, sticky=E)
-    self.entry1.grid(row=2, column=1, columnspan=6, sticky=W)
+    self.entry1.grid(row=2, column=1, columnspan=7, sticky=W)
     self.label2.grid(row=3, column=0, sticky=E)
-    self.entry2.grid(row=3, column=1, columnspan=6, sticky=W)
+    self.entry2.grid(row=3, column=1, columnspan=7, sticky=W)
     
     self.button1.grid(row=4, column=0, sticky=E)
     self.button2.grid(row=4, column=1, sticky=W)
@@ -306,7 +312,7 @@ class View(object):
     if filename == '' or not im:
       return False
     else:
-      im = pilResize(im, 400)
+      im = pilResize(im, IMAGE_SIZE)
       tkpi = ImageTk.PhotoImage(im)
       self.icon.configure(image=tkpi)
       self.icon.image = tkpi # keep a reference
@@ -322,18 +328,26 @@ class View(object):
 ########################################################################
 
 def mvcSession(root, image_dir):
-    model = Model(image_dir)
-    controller = Controller(model)
-    view = View(root, controller)
-    model.controllers.append(controller)
-    controller.views.append(view)
-    
-    # initial update returns false when nothing to do
-    if controller.update():
-      root.mainloop()
-    else:
-      print "Image files not found"
-      tkMessageBox.showerror('No Images', 'Image files not found')
+
+  """
+  Instantiates the model, view and controller classes and connect them
+  together. If the controller completes an initial update if enters
+  the main tk loop and waits for events. If the controller can't do its
+  update (probably because there weren't any images in image_dir) it 
+  shows an message box and exits.
+  """
+  model = Model(image_dir)
+  controller = Controller(model)
+  view = View(root, controller)
+  model.controllers.append(controller)
+  controller.views.append(view)
+  
+  # initial update returns false when nothing to do
+  if controller.update():
+    root.mainloop()
+  else:
+    print "Image files not found"
+    tkMessageBox.showerror('No Images', 'Image files not found')
   
 
 ########################################################################
