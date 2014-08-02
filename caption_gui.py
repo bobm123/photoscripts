@@ -14,32 +14,55 @@ import image_metadata
 
 JSON_FILE = 'imageinfo.json'
 
-
+########################################################################
+#
+# TODOs:
+# Hide main when in file dialog open: root.widthdraw(), .deiconify()
+# Help merge inputs from several json files (open oldest first)
+# Define some kind of next dir behavior instead of always exit?
+#
 ########################################################################
 
-
-
-#def readIptcInfo (filename):
-#  if os.path.isfile(filename):
-#    try:
-#      metadata = image_metadata.readMetadata(filename)
-#      
-#    except Exception, e:
-#        # This is used to skip anything not an image.
-#        # Image.open generates an exception if it cannot open a file.
-#        # Warning, this will hide other errors as well.
-#        print e
-#        pass
-#        
-#    return (metadata['credit'], metadata['date']+" "+metadata['caption'])
-  
+########################################################################
+# Global Utility functions  
 
 def pilResize(im, newsize):
     im.thumbnail((newsize, newsize), Image.ANTIALIAS)
     return im
 
 
+def chooseDirectory(root):
+    return tkFileDialog.askdirectory(parent=root, initialdir='.', mustexist=True, title='Image directory')
+
+
+def loadAllJson (filelist):
+  """
+  load all the .json files in the dir, starting with the oldest
+  """
+  all_info = {}
+  
+  # make a timestamped listing of all json files
+  fileorder = {}
+  for fn in filelist:
+    if '.json' in fn:
+      fileorder[os.path.getmtime(fn)] = fn
+  
+  # open each json file, oldest first and update the info
+  for filetime in sorted(fileorder.iterkeys()):
+    
+    nextfile = fileorder[filetime]
+    f = open(nextfile, 'r')
+    json_info = json.loads(f.read())
+    
+    # TODO: may want update only when new info != ['','']
+    all_info.update(json_info)
+    
+  return all_info
+  
+  
+
 ########################################################################
+# Definition of the data model class for this MVC style gui application
 
 class Model(object):
   def __init__(self, image_dir):
@@ -52,15 +75,16 @@ class Model(object):
     filelist = os.listdir(self.imageDir)
     image_info = self.findImages(filelist)
 
-    # If there's a json file, open it and load its image info
-    if JSON_FILE in filelist:
-      f = open(os.path.join(self.imageDir, JSON_FILE), 'r')
-      json_info = json.loads(f.read())
-      # use the info from the json file 
-      for k,v in json_info.iteritems():
-        if k in image_info:
-          image_info[k] = v
+    # load their info from all the json files
+    jfiles = [os.path.join(self.imageDir,fn) for fn in filelist]
+    json_info = loadAllJson(jfiles)
 
+    # add the json file info to the image files. Ignores info if there
+    # isn't an image file to go with it.
+    for fn in image_info:
+      if fn in json_info:
+        image_info[fn] = json_info[fn]
+        
     # save the image info as the data mode and return a list of files
     self.imageInfo = image_info
     #print self.imageInfo
@@ -84,12 +108,13 @@ class Model(object):
         # This is used to skip anything not an image.
         # Image.open generates an exception if it cannot open a file.
         # Warning, this will hide other errors as well.
-        print "not an image file ", fullpath
+        #print "not an image file ", fullpath
+        pass
         
       else:
         metadata = image_metadata.readMetadata(fullpath)
         image_info[f] = [metadata['credit'], metadata['date']+" "+metadata['caption']]
-        print "image created: %s" %time.ctime(os.path.getctime(fullpath))
+        #print "image created: %s" %time.ctime(os.path.getctime(fullpath))
           
     return image_info
 
@@ -140,6 +165,7 @@ class Model(object):
 
 
 ########################################################################
+# Definition of the controller class for this MVC style gui application
 
 class Controller(object):
   def __init__(self, model):
@@ -184,6 +210,7 @@ class Controller(object):
 
 
 ########################################################################
+# Definition of the view class for this MVC style gui application
 
 class View(object):
   def __init__(self, master, controller):
@@ -259,17 +286,22 @@ class View(object):
 
 ########################################################################
 
-
-def chooseDirectory(root):
-
-    # options for opening a directory
-    options = {}
-    options['initialdir'] = '.'
-    options['mustexist'] = True
-    options['parent'] = root
-    options['title'] = 'Image directory'
+def mvcSession(root, image_dir):
+    model = Model(image_dir)
+    controller = Controller(model)
+    view = View(root, controller)
+    model.controllers.append(controller)
+    controller.views.append(view)
     
-    return tkFileDialog.askdirectory(parent=root, initialdir='.', mustexist=True, title='Image directory')
+    # initial update returns false when nothing to do
+    if controller.update():
+      root.mainloop()
+    else:
+      print "Image files not found"
+      tkMessageBox.showerror('No Images', 'Image files not found')
+  
+
+########################################################################
 
 
 def main(argv):
@@ -281,19 +313,9 @@ def main(argv):
     image_dir = chooseDirectory(root)
     
   if os.path.exists(image_dir):    
-    model = Model(image_dir)
-    controller = Controller(model)
-    view = View(root, controller)
-    model.controllers.append(controller)
-    controller.views.append(view)
-    
-    if controller.update():
-      root.mainloop()
-    else:
-      print "Image files not found"
-      tkMessageBox.showerror('No Images', 'Image files not found')
+    mvcSession(root, image_dir)
   else:
-      print "file path does not exist"
+    print "file path does not exist"
       
 
 if __name__ == '__main__':
