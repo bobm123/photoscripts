@@ -77,7 +77,7 @@ def gen_page(work_dir, count):
         if len(credit) > 0:
             description += ", photo: "+credit
             
-        # Show a sample of the galaria photo carosel's caption area     
+        # Show a sample of the galaria photo carousel's caption area     
         print base_name
         print description
 
