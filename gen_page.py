@@ -29,7 +29,6 @@ def get_favorites(imageinfo, count):
   favList = sorted(imageinfo, reverse=True,  key=lambda k: imageinfo[k][2])
   #for fn in favList:
   #  print "%s, likes: %d" % (fn, imageinfo[fn][2])
-  
   return favList[0:count]
 
   
@@ -51,12 +50,10 @@ def gen_page(work_dir, count):
       print "could not read image info from", jsonfile
       return
     
+    # Use the votes to create a list of the N best images
     fav_images = get_favorites(imageinfo, count)
-    
-    # TODO: Use the votes to create a list of the N best images
-    for fn in fav_images:
+    for fn in sorted(fav_images):
         base_name = os.path.splitext(os.path.basename(fn))[0]+'.jpg'
-        #print base_name
         
         original_file = os.path.join(work_dir, 'original', base_name)
         small_file = os.path.join(work_dir, 'small', base_name)
@@ -71,17 +68,18 @@ def gen_page(work_dir, count):
           
         im.save(original_file, "JPEG")
 
-        credit = ''
-        caption = ''
-        print base_name
-        if base_name in imageinfo:
-          credit = imageinfo[base_name][0]
-          caption =imageinfo[base_name][1]
-        
+        credit = imageinfo[base_name][0]
+        caption =imageinfo[base_name][1]        
+        if len(caption) == 0:
+          caption = base_name
+          
         description = caption
         if len(credit) > 0:
-            description += " photo: "+credit
-        print "description: "+description
+            description += ", photo: "+credit
+            
+        # Show a sample of the galaria photo carosel's caption area     
+        print base_name
+        print description
 
         # Make the snall photos S_HEIGHT high by various width
         im_scale = S_HEIGHT / float(im.size[1]);
@@ -96,7 +94,7 @@ def gen_page(work_dir, count):
         im.thumbnail((int(im.size[0]*im_scale), T_HEIGHT), Image.ANTIALIAS)
         im.save(thumb_file, "JPEG")
 
-        tags.write(fmt_line % (base_name, base_name, base_name, base_name, description))
+        tags.write(fmt_line % (base_name, base_name, description, base_name, base_name))
 
     tags.write("  </div>\n")
     tags.close
@@ -104,8 +102,6 @@ def gen_page(work_dir, count):
 
 def main():
   count = int(sys.argv[2]) if len(sys.argv) > 2 else 50
-  print count
-  
   gen_page(sys.argv[1], count)
     
 
