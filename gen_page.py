@@ -57,6 +57,8 @@ def gen_page(work_dir, count):
       print "could not read image info from", jsonfile
       return
     
+    jtags = []
+    
     # Use the votes to create a list of the N best images
     fav_images = get_favorites(imageinfo, count)
     #for fn in sorted(fav_images):
@@ -102,10 +104,21 @@ def gen_page(work_dir, count):
         im.thumbnail((int(im.size[0]*im_scale), T_HEIGHT), Image.ANTIALIAS)
         im.save(thumb_file, "JPEG")
 
+        this_tag = {}
+        this_tag["title"] = base_name
+        this_tag["image"] = "small/%s" % base_name
+        this_tag["thumb"] = "thumbs/%s" % base_name
+        this_tag["big"] = "original/%s" % base_name
+        this_tag["description"] = description
+        jtags.append(this_tag)
+        
         tags.write(fmt_line % (base_name, base_name, description, base_name, base_name))
 
     tags.write("  </div>\n")
     tags.close
+
+    jt = open(work_dir + '/tags.json', 'w')
+    jt.write(json.dumps(jtags, sort_keys=True, indent=4, separators=(',', ': ')))
 
 
 def main():
