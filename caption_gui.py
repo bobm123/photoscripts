@@ -4,7 +4,8 @@ import sys, os
 import json
 from Tkinter import *
 import tkMessageBox, tkFileDialog
-import Image
+#import Image
+from PIL import Image
 import ImageTk
 import os.path
 import time
@@ -125,7 +126,11 @@ class Model(object):
         # Image.open generates an exception if it cannot open a file.
         # Warning, this will hide other errors as well.
         #print "not an image file ", fullpath
-        pass
+        print e
+        print fullpath
+        print os.path.isfile(fullpath)
+		
+		#pass
         
       else:
         metadata = image_metadata.readMetadata(fullpath)
